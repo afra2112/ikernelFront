@@ -1,10 +1,9 @@
 <script setup>
-import PruebaProyectos from './components/PruebaProyectos.vue';
+
 </script>
 
 <template>
-  <PruebaProyectos></PruebaProyectos>
+  <div id="app">
+    <router-view/>
+  </div>
 </template>
-
-<style scoped>
-</style>
