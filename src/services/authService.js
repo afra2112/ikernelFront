@@ -7,8 +7,10 @@ export const authService = {
             headers: {"Content-Type": "application/x-www-form-urlencoded"},
         });
     },
-
     async logout() {
         return api.post("/logout");
+    },
+    async currentUser() {
+        return api.get("/api/usuarios/usuario-logueado");
     }
 };

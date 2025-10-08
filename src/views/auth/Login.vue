@@ -10,7 +10,7 @@ const login = async () => {
   error.value = null;
   try {
     await authService.login(username.value, password.value);
-    window.location.href = "/"; 
+    window.location.href = "/dashboard"; 
   } catch (e) {
     error.value = "Correo o contrasena incorrectos.";
   }
