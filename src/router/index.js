@@ -14,6 +14,13 @@ import Correo from "@/views/dashboard/Correo.vue"
 import Biblioteca from "@/views/dashboard/Biblioteca.vue"
 import Chat from "@/views/dashboard/Chat.vue"
 import Tutoriales from "@/views/dashboard/Tutoriales.vue"
+import { jwtDecode } from "jwt-decode"
+import MisActividades from "@/views/desarrollador/MisActividades.vue"
+import RegistrarErrores from "@/views/desarrollador/RegistrarErrores.vue"
+import RegistrarInterrupciones from "@/views/desarrollador/RegistrarInterrupciones.vue"
+import RegistrarDesarrollador from "@/views/coordinador/RegistrarDesarrollador.vue"
+import Desarrolladores from "@/views/coordinador/Desarrolladores.vue"
+
 
 const routes = [
     {
@@ -33,12 +40,18 @@ const routes = [
     {
         path: "/dashboard",
         component : DashboardLayout,
+        meta: { requiresAuth: true },
         children : [
             {path: "", component: Dashboard},
             {path: "correo", name: "Correo", component: Correo},
             {path: "biblioteca", name: "Biblioteca", component: Biblioteca},
             {path: "chat", name: "Chat", component: Chat},
-            {path: "tutoriales", name: "Tutoriales", component: Tutoriales}
+            {path: "tutoriales", name: "Tutoriales", component: Tutoriales},
+            {path: "mis-actividades", name: "MisActividades", component: MisActividades},
+            {path: "registrar-errores", name: "RegistrarErrores", component: RegistrarErrores},
+            {path: "registrar-interrupciones", name: "RegistrarInterrupciones", component: RegistrarInterrupciones},
+            {path: "registrar-desarrollador", name: "RegistrarDesarrolladores", component: RegistrarDesarrollador},
+            {path: "listar-desarrolladores", name: "Desarrolladores", component: Desarrolladores}
         ]
     }
 ]
@@ -46,6 +59,35 @@ const routes = [
 const router = createRouter({
     history: createWebHistory(),
     routes,
+    linkExactActiveClass: "active-exact",
+})
+
+router.beforeEach((to, from, next) => {
+    const token = localStorage.getItem("token");
+    
+    const estaExpirado = (token) => {
+        try {
+            const {exp} = jwtDecode(token)
+            return Date.now() >= exp * 1000
+        } catch {
+            return true
+        }
+    }
+
+    if (to.meta.requiresAuth) {
+        if (!token || estaExpirado(token)) {
+            localStorage.removeItem("token")
+            next("/login")
+            return
+        }
+  }
+
+  if (to.name === "Login" && token && !estaExpirado(token)) {
+    next("/dashboard")
+    return
+  }
+
+  next()
 })
 
 export default router

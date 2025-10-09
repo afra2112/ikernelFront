@@ -1,3 +1,28 @@
+<script setup>
+import { ref } from "vue";
+import { authService } from '@/services/authService';
+
+const formData = ref({
+  nombre: "",
+  email: "",
+  telefono: "",
+  asunto: "",
+  mensaje: ""
+});
+
+const mensaje = ref("");
+
+const enviarMensaje = async () => {
+  try {
+    await authService.enviarCorreo(formData.value);
+    mensaje.value = "Tu mensaje fue enviado correctamente";
+    formData.value = { nombre: "", email: "", telefono: "", asunto: "", mensaje: "" };
+  } catch (error) {
+    mensaje.value = "Hubo un error al enviar tu mensaje";
+  }
+};
+</script>
+
 <template>
   <div class="container">
     <div class="grid grid-2">
@@ -89,37 +114,6 @@
     </div>
   </div>
 </template>
-
-<script setup>
-import { ref } from 'vue'
-
-const formData = ref({
-  nombre: '',
-  email: '',
-  telefono: '',
-  asunto: '',
-  mensaje: ''
-})
-
-const mensaje = ref('')
-
-const enviarMensaje = () => {
-  // Simular envío
-  mensaje.value = 'Mensaje enviado correctamente. Nos pondremos en contacto contigo pronto.'
-  
-  formData.value = {
-    nombre: '',
-    email: '',
-    telefono: '',
-    asunto: '',
-    mensaje: ''
-  }
-
-  setTimeout(() => {
-    mensaje.value = ''
-  }, 5000)
-}
-</script>
 
 <style scoped>
 h1, h2 {

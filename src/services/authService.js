@@ -1,16 +1,17 @@
 import api from "./axiosUtilizable";
 
 export const authService = {
-    async login(username, password) {
-        const params = new URLSearchParams({username, password});
-        return api.post("/api/public/login", params, {
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    async login(email, password) {
+
+        return api.post("/api/public/login", {
+            email: email,
+            password: password
+        }, 
+        {
+            headers: { "Content-Type": "application/json" },
         });
-    },
-    async logout() {
-        return api.post("/api/public/logout");
     },
     async currentUser() {
         return api.get("/api/public/usuario-logueado");
-    }
+    },
 };

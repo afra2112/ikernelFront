@@ -2,15 +2,16 @@
 import { authService } from '@/services/authService';
 import { ref } from 'vue';
 
-const username = ref("");
+const email = ref("");
 const password = ref("");
 const error = ref(null);
 
 const login = async () => {
   error.value = null;
   try {
-    await authService.login(username.value, password.value);
-    window.location.href = "/dashboard"; 
+    const response = await authService.login(email.value, password.value);
+    window.location.href = "/dashboard";
+    localStorage.setItem("token", response.data.token)
   } catch (e) {
     error.value = "Correo o contrasena incorrectos.";
   }
@@ -28,7 +29,7 @@ const login = async () => {
         <form @submit.prevent="login">
           <div class="form-group">
             <label class="form-label">Email</label>
-            <input v-model="username" type="email" class="form-input" placeholder="tu@email.com"required>
+            <input v-model="email" type="email" class="form-input" placeholder="tu@email.com"required>
           </div>
           
           <div class="form-group">

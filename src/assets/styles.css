@@ -278,3 +278,8 @@ body {
 .gap-4 {
   gap: 16px;
 }
+
+.active-exact {
+  background-color: var(--primary-color);
+  color: white;
+}

@@ -14,13 +14,10 @@ onMounted(async () => {
   }
 });
 
-onMounted(async () => {
-  try {
-    await authService.logout();
-  } catch (error) {
-    console.log(e);
-  }
-});
+const logout = () => {
+  localStorage.removeItem("token");
+  window.location.href = "/login";
+}
 
 const getRoleName = (tipo) => {
   const roles = {
@@ -45,7 +42,7 @@ const getRoleName = (tipo) => {
       <nav class="sidebar-nav">
         <div class="nav-section">
           <h3>General</h3>
-          <router-link to="/dashboard" class="nav-item">
+          <router-link to="/dashboard" class="nav-item" exact-active-class="router-link-active">
             <span>📊</span> Dashboard
           </router-link>
           <router-link to="/dashboard/correo" class="nav-item">
@@ -100,11 +97,9 @@ const getRoleName = (tipo) => {
       </nav>
 
       <div class="sidebar-footer">
-        <form @submit="logout">
-            <button type="submit" class="btn btn-outline" style="width: 100%">
+            <button @click="logout" class="btn btn-outline" style="width: 100%">
                 Cerrar Sesión
             </button>
-        </form>
       </div>
     </aside>
 
