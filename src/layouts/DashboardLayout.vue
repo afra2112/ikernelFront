@@ -1,15 +1,26 @@
 <script setup>
 import { authService } from '@/services/authService';
+import { ref, onMounted} from 'vue';
 
+const currentUser = ref([])
 
-const logout = async () => {
-    try {
-        await authService.logout();
-        window.location.href = "/login"; 
-    } catch (e) {
-        console.log(e);
-    }
-}
+onMounted(async () => {
+  try {
+    const { data } = await authService.currentUser();
+    console.log("Usuario autenticado:", data);
+    currentUser.value = data;
+  } catch (e) {
+    console.warn("No autenticado");
+  }
+});
+
+onMounted(async () => {
+  try {
+    await authService.logout();
+  } catch (error) {
+    console.log(e);
+  }
+});
 
 const getRoleName = (tipo) => {
   const roles = {
@@ -27,8 +38,8 @@ const getRoleName = (tipo) => {
     <aside class="sidebar">
       <div class="sidebar-header">
         <h2>IKernell</h2>
-        <p class="user-info">{{ currentUser?.nombre }}</p>
-        <span class="badge badge-info">{{ getRoleName(currentUser?.tipo) }}</span>
+        <p class="user-info">{{ currentUser.nombre }}</p>
+        <span class="badge badge-info">{{ getRoleName(currentUser.rol) }}</span>
       </div>
 
       <nav class="sidebar-nav">
@@ -51,7 +62,7 @@ const getRoleName = (tipo) => {
           </router-link>
         </div>
 
-        <div v-if="currentUser?.tipo === 'coordinador'" class="nav-section">
+        <div v-if="currentUser.rol === 'COORDINADOR'" class="nav-section">
           <h3>Coordinador</h3>
           <router-link to="/dashboard/registrar-desarrollador" class="nav-item">
             <span>➕</span> Registrar Desarrollador
@@ -61,7 +72,7 @@ const getRoleName = (tipo) => {
           </router-link>
         </div>
 
-        <div v-if="['coordinador', 'lider'].includes(currentUser?.tipo)" class="nav-section">
+        <div v-if="['COORDINADOR', 'LIDER'].includes(currentUser.rol)" class="nav-section">
           <h3>Proyectos</h3>
           <router-link to="/dashboard/registrar-proyecto" class="nav-item">
             <span>➕</span> Registrar Proyecto

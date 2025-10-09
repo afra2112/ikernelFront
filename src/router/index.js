@@ -35,10 +35,10 @@ const routes = [
         component : DashboardLayout,
         children : [
             {path: "", component: Dashboard},
-            {path: "/correo", name: "Correo", component: Correo},
-            {path: "/biblioteca", name: "Biblioteca", component: Biblioteca},
-            {path: "/chat", name: "Chat", component: Chat},
-            {path: "/tutoriales", name: "Tutoriales", component: Tutoriales}
+            {path: "correo", name: "Correo", component: Correo},
+            {path: "biblioteca", name: "Biblioteca", component: Biblioteca},
+            {path: "chat", name: "Chat", component: Chat},
+            {path: "tutoriales", name: "Tutoriales", component: Tutoriales}
         ]
     }
 ]

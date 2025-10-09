@@ -5,10 +5,13 @@ import { proyectoService } from '@/services/proyectoService'
 import { actividadService } from '@/services/actividadService'
 import { usuarioService } from '@/services/usuarioService'
 
+const currentUser = ref([])
+
 onMounted(async () => {
   try {
     const { data } = await authService.currentUser();
     console.log("Usuario autenticado:", data);
+    currentUser.value = data;
   } catch (e) {
     console.warn("No autenticado");
   }
@@ -18,22 +21,25 @@ const proyectos = ref([])
 const desarrolladores = ref([])
 const actividades = ref([])
 
-const getRoleName = (tipo) => {
+const getRoleName = (rol) => {
   const roles = {
     coordinador: 'Coordinador de Proyectos',
     lider: 'Líder de Proyectos',
     desarrollador: 'Desarrollador'
   }
-  return roles[tipo] || tipo
+  return roles[rol] || rol
 }
 
 onMounted(async () => {
     try {
         const [proyectosRes, actividadesRes, desarrolladoresRes] = await Promise.all([
-            proyectoService.listarProyectos,
-            actividadService.obtenerActivades,
-            usuarioService.obtenerDesarrolladores
+            proyectoService.listarProyectos(),
+            actividadService.obtenerActivades(),
+            usuarioService.obtenerDesarrolladores()
         ]);
+
+        const {dataProyectos} = proyectoService.listarProyectos(); 
+        console.log('Proyectos:', dataProyectos);
 
         proyectos.value = proyectosRes.data;
         actividades.value = actividadesRes.data;
@@ -47,10 +53,10 @@ onMounted(async () => {
 
 <template>
   <div>
-    <h1>Bienvenido, {{ currentUser?.nombre }}</h1>
-    <p class="subtitle">Panel de control - {{ getRoleName(currentUser?.tipo) }}</p>
+    <h1>Bienvenido, {{ currentUser.nombre }}</h1>
+    <p class="subtitle">Panel de control - {{ getRoleName(currentUser.rol) }}</p>
 
-    <div class="grid grid-3 mt-4">
+    <div v-if="proyectos && desarrolladores && actividades" class="grid grid-3 mt-4">
       <div class="card stat-card">
         <div class="stat-icon">📊</div>
         <div class="stat-content">
@@ -80,7 +86,7 @@ onMounted(async () => {
       <div class="card">
         <h2>Accesos Rápidos</h2>
         <div class="quick-links">
-          <router-link v-if="['coordinador', 'lider'].includes(currentUser?.tipo)" 
+          <router-link v-if="['COORDINADOR', 'LIDER'].includes(currentUser.rol)" 
                        to="/dashboard/proyectos" class="quick-link">
             <span>📁</span> Ver Proyectos
           </router-link>
