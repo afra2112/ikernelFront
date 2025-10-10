@@ -22,8 +22,6 @@ const props = defineProps({
   }
 })
 
-console.log(props.desarrolladores)
-console.table(props.desarrolladores)
 
 // aqui mnado los emits para que mi padre view los escuche y mande las peticiones ya al back
 const emit = defineEmits([
