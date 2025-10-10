@@ -20,7 +20,10 @@ import RegistrarErrores from "@/views/desarrollador/RegistrarErrores.vue"
 import RegistrarInterrupciones from "@/views/desarrollador/RegistrarInterrupciones.vue"
 import RegistrarDesarrollador from "@/views/coordinador/RegistrarDesarrollador.vue"
 import Desarrolladores from "@/views/coordinador/Desarrolladores.vue"
-
+import RegistrarProyecto from "@/views/lider/RegistrarProyecto.vue"
+import DetalleDesarrollador from "@/views/coordinador/DetalleDesarrollador.vue"
+import ListarProyectos from "@/views/lider/ListarProyectos.vue"
+import DetalleProyectoView from "@/views/lider/DetalleProyectoView.vue"
 
 const routes = [
     {
@@ -51,7 +54,11 @@ const routes = [
             {path: "registrar-errores", name: "RegistrarErrores", component: RegistrarErrores},
             {path: "registrar-interrupciones", name: "RegistrarInterrupciones", component: RegistrarInterrupciones},
             {path: "registrar-desarrollador", name: "RegistrarDesarrolladores", component: RegistrarDesarrollador},
-            {path: "listar-desarrolladores", name: "Desarrolladores", component: Desarrolladores}
+            {path: "registrar-proyecto", name: "RegistrarProyecto", component: RegistrarProyecto},
+            {path: "desarrolladores", name: "Desarrolladores", component: Desarrolladores},
+            {path: "desarrolladores/:id", name: "DetalleDesarrollador", component: DetalleDesarrollador},
+            {path: "proyectos", name: "ListarProyectos", component: ListarProyectos},
+            {path: "proyectos/:idProyecto", name: "DetalleProyectoView", component: DetalleProyectoView}
         ]
     }
 ]

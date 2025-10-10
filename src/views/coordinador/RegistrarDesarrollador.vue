@@ -1,10 +1,46 @@
+<script setup>
+import { ref } from 'vue'
+import { usuarioService } from '@/services/usuarioService'
+import router from '@/router'
+
+const formData = ref({
+  nombre: '',
+  apellido: '',
+  fechaNacimiento: '',
+  identificacion: '',
+  direccion: '',
+  profesion: '',
+  especialidad: '',
+  tipo: '',
+  email: '',
+  telefono: '',
+  proyectoId: '',
+  foto: null
+})
+
+function handleFileUpload(event) {
+  formData.value.foto = event.target.files[0]
+}
+
+async function registrarDesarrollador() {
+  const fd = new FormData()
+  for (const key in formData.value) {
+    fd.append(key, formData.value[key])
+  }
+
+  await usuarioService.registrarDesarrollador(fd)
+  router.push("/dashboard/desarrolladores")
+}
+
+</script>
+
 <template>
   <div>
     <h1>Registrar Desarrollador</h1>
     <p class="subtitle">Ingresa la información del nuevo desarrollador</p>
 
     <div class="card mt-4">
-      <form @submit.prevent="$emit('submit', formData)">
+      <form @submit.prevent="registrarDesarrollador" enctype="multipart/form-data">
         <div class="grid grid-2">
           <div class="form-group">
             <label class="form-label">Nombre</label>
@@ -37,7 +73,7 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Especialidad de Desarrollo</label>
+            <label class="form-label">Especialidad</label>
             <select v-model="formData.especialidad" class="form-select" required>
               <option value="">Seleccionar...</option>
               <option value="Frontend">Frontend</option>
@@ -50,8 +86,8 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Tipo de Trabajador</label>
-            <select v-model="formData.tipo" class="form-select" required>
+            <label class="form-label">Rol</label>
+            <select v-model="formData.rol" class="form-select" required>
               <option value="">Seleccionar...</option>
               <option value="coordinador">Coordinador</option>
               <option value="lider">Líder de Proyecto</option>
@@ -62,6 +98,11 @@
           <div class="form-group">
             <label class="form-label">Email</label>
             <input v-model="formData.email" type="email" class="form-input" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Contrasena (Inicial para acceder al sistema)</label>
+            <input v-model="formData.password" type="password" class="form-input" required>
           </div>
 
           <div class="form-group">
@@ -80,54 +121,19 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Foto (URL)</label>
-            <input v-model="formData.foto" type="url" class="form-input" placeholder="https://...">
+            <label class="form-label">Foto</label>
+            <input type="file" class="form-input" @change="handleFileUpload">
           </div>
         </div>
 
-        <div v-if="mensaje" :class="['alert', mensajeTipo === 'success' ? 'alert-success' : 'alert-error']">
-          {{ mensaje }}
-        </div>
-
         <div class="flex gap-2 mt-4">
-          <button type="submit" class="btn btn-primary">Registrar Desarrollador</button>
+          <button type="submit" class="btn btn-primary">Registrar</button>
           <router-link to="/dashboard/desarrolladores" class="btn btn-outline">Cancelar</router-link>
         </div>
       </form>
     </div>
   </div>
 </template>
-
-<script setup>
-import { ref } from 'vue'
-import { defineProps, defineEmits } from 'vue'
-
-defineProps({
-  proyectos: {
-    type: Array,
-    default: () => []
-  },
-  mensaje: String,
-  mensajeTipo: String
-})
-
-defineEmits(['submit'])
-
-const formData = ref({
-  nombre: '',
-  apellido: '',
-  fechaNacimiento: '',
-  identificacion: '',
-  direccion: '',
-  profesion: '',
-  especialidad: '',
-  tipo: '',
-  email: '',
-  telefono: '',
-  proyectoId: '',
-  foto: ''
-})
-</script>
 
 <style scoped>
 .subtitle {
