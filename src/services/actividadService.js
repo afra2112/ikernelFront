@@ -1,7 +1,13 @@
 import api from "./axiosUtilizable";
 
 export const actividadService = {
-    async obtenerActivades(){
-        return api.get("/api/actividades/");
-    }
+  async crearActividad(formData){
+    return api.post("/api/proyectos/actividades/", formData);
+  },
+  async actualizarActividad(formData){
+    return api.put("/api/proyectos/actividades/actualizar", formData);
+  },
+  async eliminarActividad(idActividad){
+    return api.delete(`/api/proyectos/actividades/eliminar/${idActividad}`);
+  },
 }

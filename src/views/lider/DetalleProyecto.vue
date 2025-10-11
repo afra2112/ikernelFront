@@ -3,8 +3,10 @@ import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
-const activeTab = ref('general')
 
+const etapasExpandidas = ref({})
+const actividadesExpandidas = ref({})
+const mostrarDesarrolladores = ref(true)
 
 // escucho los pops que me mando mi padre view
 const props = defineProps({
@@ -43,7 +45,7 @@ const emit = defineEmits([
   'actualizar-error',
   'eliminar-error',
   'resolver-error',
-
+  
   'crear-interrupcion',
   'actualizar-interrupcion',
   'eliminar-interrupcion'
@@ -80,11 +82,13 @@ const formEtapa = ref({
 
 const formActividad = ref({
   idActividad: null,
+  idDesarrollador: null,
+  idEtapa: null,
+  idProyecto: null,
   nombre: '',
   descripcion: '',
   prioridad: 'MEDIA',
   estado: '0',
-  idDesarrollador: null
 })
 
 const formError = ref({
@@ -95,7 +99,8 @@ const formError = ref({
   estado: 'ABIERTO',
   fechaDeteccion: '',
   idEtapa: null,
-  idDesarrolladorReporta: null
+  idDesarrolladorReporta: null,
+  idActividad: null
 })
 
 const formInterrupcion = ref({
@@ -103,12 +108,35 @@ const formInterrupcion = ref({
   observacion: '',
   duracion: '',
   fecha: '',
-  tipo: 'TECNICA'
+  tipo: 'TECNICA',
+  idActividad: null
 })
 
-const desarrolladoresSeleccionados = ref([])
+const desarrolladoresSeleccionados = ref(null)
 
-// Funciones para abrir modales de edición
+const toggleEtapa = (idEtapa) => {
+  etapasExpandidas.value[idEtapa] = !etapasExpandidas.value[idEtapa]
+}
+
+const toggleActividad = (idActividad) => {
+  actividadesExpandidas.value[idActividad] = !actividadesExpandidas.value[idActividad]
+}
+
+const abrirCrearActividadEnEtapa = (idEtapa) => {
+  formActividad.value.idEtapa = idEtapa
+  modalCrearActividad.value = true
+}
+
+const abrirCrearErrorEnActividad = (idActividad) => {
+  formError.value.idActividad = idActividad
+  modalCrearError.value = true
+}
+
+const abrirCrearInterrupcionEnActividad = (idActividad) => {
+  formInterrupcion.value.idActividad = idActividad
+  modalCrearInterrupcion.value = true
+}
+
 const abrirEditarProyecto = () => {
   if (props.proyecto) {
     formProyecto.value = { ...props.proyecto }
@@ -141,15 +169,15 @@ const limpiarFormEtapa = () => {
 }
 
 const limpiarFormActividad = () => {
-  formActividad.value = { idActividad: null, nombre: '', descripcion: '', prioridad: 'MEDIA', estado: '0', idDesarrollador: null }
+  formActividad.value = { idActividad: null, nombre: '', descripcion: '', prioridad: 'MEDIA', estado: '0', idDesarrollador: null, idEtapa: null, idProyecto: null }
 }
 
 const limpiarFormError = () => {
-  formError.value = { idError: null, tipoError: 'LOGICO', observacion: '', severidad: 'MEDIO', estado: 'ABIERTO', fechaDeteccion: '', idEtapa: null, idDesarrolladorReporta: null }
+  formError.value = { idError: null, tipoError: 'LOGICO', observacion: '', severidad: 'MEDIO', estado: 'ABIERTO', fechaDeteccion: '', idEtapa: null, idDesarrolladorReporta: null, idActividad: null }
 }
 
 const limpiarFormInterrupcion = () => {
-  formInterrupcion.value = { idInterrupcion: null, observacion: '', duracion: '', fecha: '', tipo: 'TECNICA' }
+  formInterrupcion.value = { idInterrupcion: null, observacion: '', duracion: '', fecha: '', tipo: 'TECNICA', idActividad: null }
 }
 
 const submitActualizarProyecto = () => {
@@ -160,7 +188,7 @@ const submitActualizarProyecto = () => {
 const submitAsignarDesarrolladores = () => {
   emit('asignar-desarrolladores', desarrolladoresSeleccionados.value)
   modalAsignarDev.value = false
-  desarrolladoresSeleccionados.value = []
+  desarrolladoresSeleccionados.value = null
 }
 
 const submitCrearEtapa = () => {
@@ -211,7 +239,7 @@ const submitActualizarInterrupcion = () => {
   limpiarFormInterrupcion()
 }
 
-// Computed para estadísticas
+// estos son los computed para las estadísticas
 const estadisticas = computed(() => {
   if (!props.proyecto) return {}
   
@@ -231,7 +259,23 @@ const progresoGeneral = computed(() => {
   return Math.round(suma / props.proyecto.actividades.length)
 })
 
-// Funciones auxiliares
+const getActividadesPorEtapa = (idEtapa) => {
+  if (!props.proyecto?.actividades) return []
+  return props.proyecto.actividades.filter(act => act.idEtapa === idEtapa)
+}
+
+const getErroresPorActividad = (idActividad) => {
+  if (!props.proyecto?.actividades) return []
+  const actividad = props.proyecto.actividades.find(act => act.idActividad === idActividad)
+  return actividad?.errores || []
+}
+
+const getInterrupcionesPorActividad = (idActividad) => {
+  if (!props.proyecto?.interrupciones) return []
+  return props.proyecto.interrupciones.filter(int => int.idActividad === idActividad)
+}
+
+// funciones auxiliares
 const getBadgeClass = (estado) => {
   const classes = {
     'EN_PLANIFICACION': 'badge-warning',
@@ -291,7 +335,8 @@ const formatMoneda = (valor) => {
       <div class="spinner"></div>
       <p>Cargando proyecto...</p>
     </div>
-    <div v-else-if="!proyecto" class="empty-state">
+
+    <div v-if="!proyecto" class="empty-state">
       <h2>Proyecto no encontrado</h2>
       <p>El proyecto que buscas no existe o no tienes permisos para verlo.</p>
       <router-link to="/dashboard/lider/proyectos" class="btn btn-primary">
@@ -299,9 +344,7 @@ const formatMoneda = (valor) => {
       </router-link>
     </div>
 
-  
     <div v-else class="proyecto-content">
-
       <div class="proyecto-header">
         <div class="header-content">
           <div class="header-info">
@@ -401,108 +444,32 @@ const formatMoneda = (valor) => {
           </div>
         </div>
       </div>
-
-      <div class="tabs">
-        <button 
-          @click="activeTab = 'general'" 
-          :class="{ active: activeTab === 'general' }"
-          class="tab-button"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-          </svg>
-          General
-        </button>
-        <button 
-          @click="activeTab = 'desarrolladores'" 
-          :class="{ active: activeTab === 'desarrolladores' }"
-          class="tab-button"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-            <circle cx="9" cy="7" r="4"></circle>
-            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-          </svg>
-          Desarrolladores ({{ estadisticas.totalDesarrolladores }})
-        </button>
-        <button 
-          @click="activeTab = 'etapas'" 
-          :class="{ active: activeTab === 'etapas' }"
-          class="tab-button"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="8" y1="6" x2="21" y2="6"></line>
-            <line x1="8" y1="12" x2="21" y2="12"></line>
-            <line x1="8" y1="18" x2="21" y2="18"></line>
-            <line x1="3" y1="6" x2="3.01" y2="6"></line>
-            <line x1="3" y1="12" x2="3.01" y2="12"></line>
-            <line x1="3" y1="18" x2="3.01" y2="18"></line>
-          </svg>
-          Etapas ({{ proyecto.etapas?.length || 0 }})
-        </button>
-        <button 
-          @click="activeTab = 'actividades'" 
-          :class="{ active: activeTab === 'actividades' }"
-          class="tab-button"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="9 11 12 14 22 4"></polyline>
-            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-          </svg>
-          Actividades ({{ estadisticas.totalActividades }})
-        </button>
-        <button 
-          @click="activeTab = 'errores'" 
-          :class="{ active: activeTab === 'errores' }"
-          class="tab-button"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
-          Errores ({{ estadisticas.totalErrores }})
-        </button>
-        <button 
-          @click="activeTab = 'interrupciones'" 
-          :class="{ active: activeTab === 'interrupciones' }"
-          class="tab-button"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
-          </svg>
-          Interrupciones ({{ estadisticas.totalInterrupciones }})
-        </button>
-      </div>
-
-      <div class="tab-content">
-        <div v-show="activeTab === 'general'" class="tab-pane">
-          <div class="info-grid">
-            <div class="info-card">
-              <h3>Información del Proyecto</h3>
-              <div class="info-row">
+      <div class="proyecto-body">
+        <div class="info-section">
+          <div class="info-card">
+            <h3>Información del Proyecto</h3>
+            <div class="info-grid-compact">
+              <div class="info-item">
                 <span class="info-label">Descripción:</span>
                 <span class="info-value">{{ proyecto.descripcion || 'Sin descripción' }}</span>
               </div>
-              <div class="info-row">
+              <div class="info-item">
                 <span class="info-label">Objetivos:</span>
                 <span class="info-value">{{ proyecto.objetivos || 'Sin objetivos definidos' }}</span>
               </div>
-              <div class="info-row">
+              <div class="info-item">
                 <span class="info-label">Fecha Inicio:</span>
                 <span class="info-value">{{ formatFecha(proyecto.fechaInicio) }}</span>
               </div>
-              <div class="info-row">
+              <div class="info-item">
                 <span class="info-label">Fecha Fin:</span>
                 <span class="info-value">{{ formatFecha(proyecto.fechaFin) }}</span>
               </div>
-              <div class="info-row">
+              <div class="info-item">
                 <span class="info-label">Presupuesto:</span>
                 <span class="info-value">{{ formatMoneda(proyecto.presupuesto) }}</span>
               </div>
-              <div class="info-row">
+              <div class="info-item">
                 <span class="info-label">Líder:</span>
                 <span class="info-value">
                   {{ proyecto.lider ? `${proyecto.lider.nombre} ${proyecto.lider.apellido}` : 'Sin asignar' }}
@@ -511,53 +478,59 @@ const formatMoneda = (valor) => {
             </div>
           </div>
         </div>
-
-        <div v-show="activeTab === 'desarrolladores'" class="tab-pane">
-          <div class="section-header">
-            <h3>Desarrolladores Asignados</h3>
-            <button @click="modalAsignarDev = true" class="btn btn-primary">
+        <div class="section-collapsible">
+          <div class="section-header-collapsible" @click="mostrarDesarrolladores = !mostrarDesarrolladores">
+            <div class="section-title">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron" :class="{ expanded: mostrarDesarrolladores }">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+              <h3>Desarrolladores Asignados ({{ estadisticas.totalDesarrolladores }})</h3>
+            </div>
+            <button @click.stop="modalAsignarDev = true" class="btn btn-primary btn-sm">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
               </svg>
-              Asignar Desarrollador
+              Asignar
             </button>
           </div>
 
-          <div v-if="!proyecto.desarrolladores || proyecto.desarrolladores.length === 0" class="empty-state-small">
-            <p>No hay desarrolladores asignados a este proyecto</p>
-          </div>
+          <div v-show="mostrarDesarrolladores" class="section-content">
+            <div v-if="!proyecto.desarrolladores || proyecto.desarrolladores.length === 0" class="empty-state-small">
+              <p>No hay desarrolladores asignados</p>
+            </div>
 
-          <div v-else class="developers-grid">
-            <div v-for="dev in proyecto.desarrolladores" :key="dev.idUsuario" class="developer-card">
-              <div class="developer-avatar">
-                <img v-if="dev.foto" :src="dev.foto" :alt="dev.nombre" />
-                <div v-else class="avatar-placeholder">
-                  {{ dev.nombre.charAt(0) }}{{ dev.apellido.charAt(0) }}
+            <div v-else class="developers-grid">
+              <div v-for="dev in proyecto.desarrolladores" :key="dev.idUsuario" class="developer-card">
+                <div class="developer-avatar">
+                  <img v-if="dev.foto" :src="dev.foto" :alt="dev.nombre" />
+                  <div v-else class="avatar-placeholder">
+                    {{ dev.nombre.charAt(0) }}{{ dev.apellido.charAt(0) }}
+                  </div>
                 </div>
+                <div class="developer-info">
+                  <h4>{{ dev.nombre }} {{ dev.apellido }}</h4>
+                  <p class="developer-role">{{ dev.especialidad || dev.profesion }}</p>
+                  <p class="developer-email">{{ dev.email }}</p>
+                </div>
+                <button 
+                  @click="emit('remover-desarrollador', { idProyecto: proyecto.idProyecto, idUsuario: dev.idUsuario })" 
+                  class="btn-icon btn-danger-icon"
+                  title="Remover"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
               </div>
-              <div class="developer-info">
-                <h4>{{ dev.nombre }} {{ dev.apellido }}</h4>
-                <p class="developer-role">{{ dev.especialidad || dev.profesion }}</p>
-                <p class="developer-email">{{ dev.email }}</p>
-              </div>
-              <button 
-                @click="emit('remover-desarrollador', { idProyecto: proyecto.idProyecto, idUsuario: dev.idUsuario })" 
-                class="btn-icon btn-danger-icon"
-                title="Remover del proyecto"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
             </div>
           </div>
         </div>
 
-        <div v-show="activeTab === 'etapas'" class="tab-pane">
-          <div class="section-header">
-            <h3>Etapas del Proyecto</h3>
+        <div class="section-main">
+          <div class="section-header-main">
+            <h3>Etapas del Proyecto ({{ proyecto.etapas?.length || 0 }})</h3>
             <button @click="modalCrearEtapa = true" class="btn btn-primary">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -568,25 +541,36 @@ const formatMoneda = (valor) => {
           </div>
 
           <div v-if="!proyecto.etapas || proyecto.etapas.length === 0" class="empty-state-small">
-            <p>No hay etapas definidas para este proyecto</p>
+            <p>No hay etapas definidas. Crea la primera etapa para comenzar.</p>
           </div>
 
-          <div v-else class="etapas-list">
-            <div v-for="(etapa, index) in proyecto.etapas" :key="etapa.idEtapa" class="etapa-card">
-              <div class="etapa-header">
-                <div class="etapa-number">{{ index + 1 }}</div>
-                <div class="etapa-info">
-                  <h4>{{ etapa.nombre }}</h4>
-                  <p>{{ etapa.descripcion }}</p>
+          <div v-else class="etapas-hierarchy">
+            <div v-for="(etapa, index) in proyecto.etapas" :key="etapa.idEtapa" class="etapa-item">
+              <div class="etapa-header-hierarchy" @click="toggleEtapa(etapa.idEtapa)">
+                <div class="etapa-left">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron" :class="{ expanded: etapasExpandidas[etapa.idEtapa] }">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                  <div class="etapa-number">{{ index + 1 }}</div>
+                  <div class="etapa-info-compact">
+                    <h4>{{ etapa.nombre }}</h4>
+                    <p>{{ etapa.descripcion }}</p>
+                  </div>
                 </div>
-                <div class="etapa-actions">
-                  <button @click="abrirEditarEtapa(etapa)" class="btn-icon" title="Editar">
+                <div class="etapa-right">
+                  <span class="badge badge-info">
+                    {{ getActividadesPorEtapa(etapa.idEtapa).length }} actividades
+                  </span>
+                  <span v-if="etapa.errores && etapa.errores.length > 0" class="badge badge-danger">
+                    {{ etapa.errores.length }} errores
+                  </span>
+                  <button @click.stop="abrirEditarEtapa(etapa)" class="btn-icon" title="Editar">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                     </svg>
                   </button>
-                  <button @click="emit('eliminar-etapa', etapa.idEtapa)" class="btn-icon btn-danger-icon" title="Eliminar">
+                  <button @click.stop="emit('eliminar-etapa', etapa.idEtapa)" class="btn-icon btn-danger-icon" title="Eliminar">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <polyline points="3 6 5 6 21 6"></polyline>
                       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -594,236 +578,190 @@ const formatMoneda = (valor) => {
                   </button>
                 </div>
               </div>
-              
-              <div v-if="etapa.errores && etapa.errores.length > 0" class="etapa-errores">
-                <p class="errores-count">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                  </svg>
-                  {{ etapa.errores.length }} error(es) en esta etapa
-                </p>
+
+              <div v-show="etapasExpandidas[etapa.idEtapa]" class="etapa-content">
+                <div class="actividades-section">
+                  <div class="actividades-header">
+                    <h5>Actividades de esta Etapa</h5>
+                    <button @click="abrirCrearActividadEnEtapa(etapa.idEtapa)" class="btn btn-secondary btn-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                      </svg>
+                      Nueva Actividad
+                    </button>
+                  </div>
+
+                  <div v-if="getActividadesPorEtapa(etapa.idEtapa).length === 0" class="empty-state-mini">
+                    <p>No hay actividades en esta etapa</p>
+                  </div>
+
+                  <div v-else class="actividades-list">
+                    <div v-for="actividad in getActividadesPorEtapa(etapa.idEtapa)" :key="actividad.idActividad" class="actividad-item">
+                      <div class="actividad-header" @click="toggleActividad(actividad.idActividad)">
+                        <div class="actividad-left">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron" :class="{ expanded: actividadesExpandidas[actividad.idActividad] }">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                          </svg>
+                          <div class="actividad-info-compact">
+                            <h5>{{ actividad.nombre }}</h5>
+                            <p>{{ actividad.descripcion }}</p>
+                            <div class="actividad-meta">
+                              <span class="badge" :class="getPrioridadClass(actividad.prioridad)">
+                                {{ actividad.prioridad }}
+                              </span>
+                              <span v-if="actividad.desarrollador" class="developer-assigned">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                  <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                                {{ actividad.desarrollador.nombre }} {{ actividad.desarrollador.apellido }}
+                              </span>
+                              <span v-else class="text-muted">Sin asignar</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="actividad-right">
+                          <div class="progress-inline-compact">
+                            <div class="progress-bar-small">
+                              <div class="progress-fill-small" :style="{ width: actividad.estado + '%' }"></div>
+                            </div>
+                            <span class="progress-text">{{ actividad.estado }}%</span>
+                          </div>
+                          <button @click.stop="abrirEditarActividad(actividad)" class="btn-icon btn-sm" title="Editar">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                          </button>
+                          <button @click.stop="emit('eliminar-actividad', actividad.idActividad)" class="btn-icon btn-sm btn-danger-icon" title="Eliminar">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <polyline points="3 6 5 6 21 6"></polyline>
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div v-show="actividadesExpandidas[actividad.idActividad]" class="actividad-content">
+                        <div class="actividad-details-grid">
+                          <div class="detail-section">
+                            <div class="detail-header">
+                              <h6>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                  <circle cx="12" cy="12" r="10"></circle>
+                                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                </svg>
+                                Errores ({{ getErroresPorActividad(actividad.idActividad).length }})
+                              </h6>
+                              <button @click="abrirCrearErrorEnActividad(actividad.idActividad)" class="btn btn-secondary btn-xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                Registrar
+                              </button>
+                            </div>
+
+                            <div v-if="getErroresPorActividad(actividad.idActividad).length === 0" class="empty-mini">
+                              <p>Sin errores registrados</p>
+                            </div>
+
+                            <div v-else class="errors-list">
+                              <div v-for="error in getErroresPorActividad(actividad.idActividad)" :key="error.idError" class="error-item">
+                                <div class="error-info">
+                                  <div class="error-badges">
+                                    <span class="badge badge-secondary">{{ error.tipoError }}</span>
+                                    <span class="badge" :class="getSeveridadClass(error.severidad)">{{ error.severidad }}</span>
+                                    <span class="badge" :class="getEstadoErrorClass(error.estado)">{{ error.estado }}</span>
+                                  </div>
+                                  <p class="error-observation">{{ error.observacion }}</p>
+                                  <span class="error-date">{{ formatFecha(error.fechaDeteccion) }}</span>
+                                </div>
+                                <div class="error-actions">
+                                  <button @click="abrirEditarError(error)" class="btn-icon btn-xs" title="Editar">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                  </button>
+                                  <button v-if="error.estado !== 'RESUELTO'" @click="emit('resolver-error', error.idError)" class="btn-icon btn-xs btn-success-icon" title="Resolver">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                      <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                  </button>
+                                  <button @click="emit('eliminar-error', error.idError)" class="btn-icon btn-xs btn-danger-icon" title="Eliminar">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                      <polyline points="3 6 5 6 21 6"></polyline>
+                                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    </svg>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div class="detail-section">
+                            <div class="detail-header">
+                              <h6>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                  <circle cx="12" cy="12" r="10"></circle>
+                                  <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                Interrupciones ({{ getInterrupcionesPorActividad(actividad.idActividad).length }})
+                              </h6>
+                              <button @click="abrirCrearInterrupcionEnActividad(actividad.idActividad)" class="btn btn-secondary btn-xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                Registrar
+                              </button>
+                            </div>
+
+                            <div v-if="getInterrupcionesPorActividad(actividad.idActividad).length === 0" class="empty-mini">
+                              <p>Sin interrupciones registradas</p>
+                            </div>
+
+                            <div v-else class="interruptions-list">
+                              <div v-for="interrupcion in getInterrupcionesPorActividad(actividad.idActividad)" :key="interrupcion.idInterrupcion" class="interrupcion-item">
+                                <div class="interrupcion-info">
+                                  <div class="interrupcion-header-mini">
+                                    <span class="badge badge-warning">{{ interrupcion.tipo }}</span>
+                                    <span class="interrupcion-date">{{ formatFecha(interrupcion.fecha) }}</span>
+                                  </div>
+                                  <p class="interrupcion-observation">{{ interrupcion.observacion }}</p>
+                                  <span class="interrupcion-duration">Duración: {{ interrupcion.duracion }}</span>
+                                </div>
+                                <div class="interrupcion-actions">
+                                  <button @click="abrirEditarInterrupcion(interrupcion)" class="btn-icon btn-xs" title="Editar">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                  </button>
+                                  <button @click="emit('eliminar-interrupcion', interrupcion.idInterrupcion)" class="btn-icon btn-xs btn-danger-icon" title="Eliminar">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                      <polyline points="3 6 5 6 21 6"></polyline>
+                                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    </svg>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
-
-        <div v-show="activeTab === 'actividades'" class="tab-pane">
-          <div class="section-header">
-            <h3>Actividades del Proyecto</h3>
-            <button @click="modalCrearActividad = true" class="btn btn-primary">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              Nueva Actividad
-            </button>
-          </div>
-
-          <div v-if="!proyecto.actividades || proyecto.actividades.length === 0" class="empty-state-small">
-            <p>No hay actividades registradas para este proyecto</p>
-          </div>
-
-          <div v-else class="table-container">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Actividad</th>
-                  <th>Descripción</th>
-                  <th>Desarrollador</th>
-                  <th>Prioridad</th>
-                  <th>Progreso</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="actividad in proyecto.actividades" :key="actividad.idActividad">
-                  <td>
-                    <strong>{{ actividad.nombre }}</strong>
-                  </td>
-                  <td>{{ actividad.descripcion }}</td>
-                  <td>
-                    <span v-if="actividad.desarrollador">
-                      {{ actividad.desarrollador.nombre }} {{ actividad.desarrollador.apellido }}
-                    </span>
-                    <span v-else class="text-muted">Sin asignar</span>
-                  </td>
-                  <td>
-                    <span class="badge" :class="getPrioridadClass(actividad.prioridad)">
-                      {{ actividad.prioridad }}
-                    </span>
-                  </td>
-                  <td>
-                    <div class="progress-inline">
-                      <div class="progress-bar-small">
-                        <div class="progress-fill-small" :style="{ width: actividad.estado + '%' }"></div>
-                      </div>
-                      <span class="progress-text">{{ actividad.estado }}%</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div class="action-buttons">
-                      <button @click="abrirEditarActividad(actividad)" class="btn-icon" title="Editar">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                        </svg>
-                      </button>
-                      <button @click="emit('eliminar-actividad', actividad.idActividad)" class="btn-icon btn-danger-icon" title="Eliminar">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <polyline points="3 6 5 6 21 6"></polyline>
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div v-show="activeTab === 'errores'" class="tab-pane">
-          <div class="section-header">
-            <h3>Errores del Proyecto</h3>
-            <button @click="modalCrearError = true" class="btn btn-primary">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              Registrar Error
-            </button>
-          </div>
-
-          <div v-if="!proyecto.etapas || proyecto.etapas.every(e => !e.errores || e.errores.length === 0)" class="empty-state-small">
-            <p>No hay errores registrados en este proyecto</p>
-          </div>
-
-          <div v-else class="table-container">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Tipo</th>
-                  <th>Observación</th>
-                  <th>Severidad</th>
-                  <th>Estado</th>
-                  <th>Etapa</th>
-                  <th>Fecha</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                <template v-for="etapa in proyecto.etapas" :key="etapa.idEtapa">
-                  <tr v-for="error in etapa.errores" :key="error.idError">
-                    <td>
-                      <span class="badge badge-secondary">{{ error.tipoError }}</span>
-                    </td>
-                    <td>{{ error.observacion }}</td>
-                    <td>
-                      <span class="badge" :class="getSeveridadClass(error.severidad)">
-                        {{ error.severidad }}
-                      </span>
-                    </td>
-                    <td>
-                      <span class="badge" :class="getEstadoErrorClass(error.estado)">
-                        {{ error.estado }}
-                      </span>
-                    </td>
-                    <td>{{ etapa.nombre }}</td>
-                    <td>{{ formatFecha(error.fechaDeteccion) }}</td>
-                    <td>
-                      <div class="action-buttons">
-                        <button @click="abrirEditarError(error)" class="btn-icon" title="Editar">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                          </svg>
-                        </button>
-                        <button 
-                          v-if="error.estado !== 'RESUELTO'" 
-                          @click="emit('resolver-error', error.idError)" 
-                          class="btn-icon btn-success-icon" 
-                          title="Marcar como resuelto"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
-                        </button>
-                        <button @click="emit('eliminar-error', error.idError)" class="btn-icon btn-danger-icon" title="Eliminar">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                </template>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div v-show="activeTab === 'interrupciones'" class="tab-pane">
-          <div class="section-header">
-            <h3>Interrupciones del Proyecto</h3>
-            <button @click="modalCrearInterrupcion = true" class="btn btn-primary">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              Registrar Interrupción
-            </button>
-          </div>
-
-          <div v-if="!proyecto.interrupciones || proyecto.interrupciones.length === 0" class="empty-state-small">
-            <p>No hay interrupciones registradas para este proyecto</p>
-          </div>
-
-          <div v-else class="table-container">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Tipo</th>
-                  <th>Observación</th>
-                  <th>Duración</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="interrupcion in proyecto.interrupciones" :key="interrupcion.idInterrupcion">
-                  <td>{{ formatFecha(interrupcion.fecha) }}</td>
-                  <td>
-                    <span class="badge badge-warning">{{ interrupcion.tipo }}</span>
-                  </td>
-                  <td>{{ interrupcion.observacion }}</td>
-                  <td>{{ interrupcion.duracion }}</td>
-                  <td>
-                    <div class="action-buttons">
-                      <button @click="abrirEditarInterrupcion(interrupcion)" class="btn-icon" title="Editar">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                        </svg>
-                      </button>
-                      <button @click="emit('eliminar-interrupcion', interrupcion.idInterrupcion)" class="btn-icon btn-danger-icon" title="Eliminar">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <polyline points="3 6 5 6 21 6"></polyline>
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
       </div>
     </div>
-
     <div v-if="modalEditarProyecto" class="modal-overlay" @click.self="modalEditarProyecto = false">
       <div class="modal">
         <div class="modal-header">
@@ -900,9 +838,9 @@ const formatMoneda = (valor) => {
         <form @submit.prevent="submitAsignarDesarrolladores" class="modal-body">
           <div class="form-group">
             <label>Seleccionar Desarrollador *</label>
-            <select v-model="desarrolladoresSeleccionados" required class="form-control" multiple>
+            <select v-model="desarrolladoresSeleccionados" required class="form-control">
               <option v-if="desarrolladores.length === 0" value="" disabled>No hay desarrolladores disponibles.</option>
-              <option v-for="desarrollador in props.desarrolladores" :key="desarrollador.idUsuario" :value="Number(desarrollador.idUsuario)">{{ desarrollador.nombre }} - {{ desarrollador.rol }}</option>
+              <option v-for="desarrollador in props.desarrolladores" :key="desarrollador.idUsuario" :value="desarrollador.idUsuario">{{desarrollador.nombre}} {{desarrollador.apellido}} - {{desarrollador.especialidad}}</option>
             </select>
           </div>
           <div class="modal-footer">
@@ -1993,52 +1931,533 @@ textarea.form-control {
   min-height: 80px;
 }
 
+/* New hierarchical styles */
+.proyecto-body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.info-section {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.info-card h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 20px;
+}
+
+.info-grid-compact {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.info-value {
+  font-size: 14px;
+  color: #1f2937;
+}
+
+/* Collapsible Section (Developers) */
+.section-collapsible {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.section-header-collapsible {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  cursor: pointer;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  transition: background 0.2s;
+}
+
+.section-header-collapsible:hover {
+  background: #f3f4f6;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.section-title h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.chevron {
+  transition: transform 0.3s ease;
+  color: #6b7280;
+}
+
+.chevron.expanded {
+  transform: rotate(180deg);
+}
+
+.section-content {
+  padding: 24px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 1000px;
+  }
+}
+
+/* Main Section (Stages) */
+.section-main {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.section-header-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.section-header-main h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* Hierarchical Stages */
+.etapas-hierarchy {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.etapa-item {
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.etapa-item:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.1);
+}
+
+.etapa-header-hierarchy {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: #f9fafb;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.etapa-header-hierarchy:hover {
+  background: #f3f4f6;
+}
+
+.etapa-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.etapa-number {
+  width: 40px;
+  height: 40px;
+  background: #3b82f6;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.etapa-info-compact {
+  flex: 1;
+}
+
+.etapa-info-compact h4 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.etapa-info-compact p {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.etapa-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.etapa-content {
+  padding: 24px;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+  animation: slideDown 0.3s ease;
+}
+
+/* Activities Section */
+.actividades-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.actividades-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.actividades-header h5 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.actividades-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.actividad-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fafbfc;
+}
+
+.actividad-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.actividad-header:hover {
+  background: #f3f4f6;
+}
+
+.actividad-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.actividad-info-compact {
+  flex: 1;
+}
+
+.actividad-info-compact h5 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.actividad-info-compact p {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.actividad-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.developer-assigned {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.actividad-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.progress-inline-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+}
+
+.actividad-content {
+  padding: 16px;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+  animation: slideDown 0.3s ease;
+}
+
+/* Activity Details Grid (Errors + Interruptions) */
+.actividad-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.detail-section {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.detail-header h6 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+/* Errors List */
+.errors-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.error-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+}
+
+.error-info {
+  flex: 1;
+}
+
+.error-badges {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.error-observation {
+  font-size: 13px;
+  color: #1f2937;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.error-date {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.error-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Interruptions List */
+.interruptions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.interrupcion-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+}
+
+.interrupcion-info {
+  flex: 1;
+}
+
+.interrupcion-header-mini {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.interrupcion-date {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.interrupcion-observation {
+  font-size: 13px;
+  color: #1f2937;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.interrupcion-duration {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.interrupcion-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Empty States */
+.empty-state-mini {
+  text-align: center;
+  padding: 32px 16px;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.empty-mini {
+  text-align: center;
+  padding: 24px 12px;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.empty-mini p {
+  margin: 0;
+}
+
+/* Button Sizes */
+.btn-sm {
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.btn-xs {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.btn-icon.btn-sm {
+  width: 28px;
+  height: 28px;
+}
+
+.btn-icon.btn-xs {
+  width: 24px;
+  height: 24px;
+}
+
 /* Responsive */
+@media (max-width: 1024px) {
+  .actividad-details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 768px) {
   .detalle-proyecto {
     padding: 16px;
   }
 
-  .header-content {
+  .etapa-header-hierarchy {
     flex-direction: column;
-    gap: 16px;
+    align-items: flex-start;
+    gap: 12px;
   }
 
-  .header-actions {
+  .etapa-right {
     width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
-  .header-actions .btn {
-    flex: 1;
+  .actividad-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
   }
 
-  .stats-grid {
+  .actividad-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .info-grid-compact {
     grid-template-columns: 1fr;
-  }
-
-  .tabs {
-    gap: 4px;
-  }
-
-  .tab-button {
-    padding: 10px 12px;
-    font-size: 13px;
-  }
-
-  .developers-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-
-  .table-container {
-    overflow-x: scroll;
-  }
-
-  .data-table {
-    min-width: 800px;
   }
 }
 </style>

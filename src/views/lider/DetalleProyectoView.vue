@@ -4,6 +4,8 @@ import { useRoute } from 'vue-router'
 import DetalleProyecto from './DetalleProyecto.vue'
 import { proyectoService } from '@/services/proyectoService'
 import { usuarioService } from '@/services/usuarioService'
+import { etapaService } from '@/services/etapaService'
+import { actividadService } from '@/services/actividadService'
 
 
 const route = useRoute()
@@ -69,7 +71,9 @@ const removerDesarrollador = async (idDev) => {
 
 const crearEtapa = async (form) => {
   try {
-    await proyectoService.crearEtapa(proyecto.value.idProyecto, form)
+    form.idProyecto = proyecto.value.idProyecto
+    console.log('Formulario final antes de enviar:', form.value);
+    await etapaService.crearEtapa(form)
     await cargarProyecto()
   } catch (e) {
     console.error('Error creando etapa:', e)
@@ -96,7 +100,8 @@ const eliminarEtapa = async (idEtapa) => {
 
 const crearActividad = async (form) => {
   try {
-    await proyectoService.crearActividad(form)
+    form.idProyecto = proyecto.value.idProyecto
+    await actividadService.crearActividad(form)
     await cargarProyecto()
   } catch (e) {
     console.error('Error creando actividad:', e)

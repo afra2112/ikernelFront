@@ -1,7 +1,6 @@
 import api from "./axiosUtilizable";
 
 export const proyectoService = {
-  //peticiones de proyectos
   async listarProyectos(){
     return api.get("/api/proyectos/");
   },
@@ -27,28 +26,6 @@ export const proyectoService = {
   },
   async removerDesarrollador(idProyecto, idDesarrollador){
     return api.patch(`/api/proyectos/remover-desarrollador/${idProyecto}`, idDesarrollador);
-  },
-
-  //peticiones de etapas
-  async crearEtapa(formData){
-    return api.post("/api/proyectos/etapas/nueva", formData);
-  },
-  async actualizarEtapa(formData){
-    return api.put("/api/proyectos/etapas/actualizar", formData);
-  },
-  async eliminarEtapa(idEtapa){
-    return api.delete(`/api/proyectos/etapas/eliminar/${idEtapa}`);
-  },
-
-  //peticiones de actividades
-  async crearActividad(formData){
-    return api.post("/api/proyectos/actividades/nueva", formData);
-  },
-  async actualizarActividad(formData){
-    return api.put("/api/proyectos/actividades/actualizar", formData);
-  },
-  async eliminarActividad(idActividad){
-    return api.delete(`/api/proyectos/actividades/eliminar/${idActividad}`);
   },
 
   //peticiones de errores
