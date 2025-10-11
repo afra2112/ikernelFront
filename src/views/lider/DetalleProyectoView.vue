@@ -15,8 +15,9 @@ const cargarProyecto = async () => {
   loading.value = true
   try {
     const { data } = await proyectoService.obtenerDetalleProyecto(route.params.idProyecto)
-    const { data: dataDesarrolladores } = await usuarioService.obtenerDesarrolladores();
     proyecto.value = data
+    console.log(data.desarrolladores)
+    const { data: dataDesarrolladores } = await usuarioService.obtenerDesarrolladoresQueNoEstenEnProyectoActual(data.idProyecto);
     desarrolladores.value = dataDesarrolladores
   } catch (err) {
     console.error('Error cargando proyecto:', err)
@@ -48,9 +49,9 @@ const inhabilitarProyecto = async (id) => {
   }
 }
 
-const asignarDesarrollador = async (idDev) => {
+const asignarDesarrolladores = async (idsDevs) => {
   try {
-    await proyectoService.asignarDesarrollador(proyecto.value.idProyecto, idDev)
+    await proyectoService.asignarDesarrolladores(proyecto.value.idProyecto, idsDevs)
     await cargarProyecto()
   } catch (e) {
     console.error('Error asignando desarrollador:', e)
@@ -202,7 +203,7 @@ const eliminarInterrupcion = async (id) => {
       :desarrolladores="desarrolladores"
       @actualizar-proyecto="actualizarProyecto"
       @inhabilitar-proyecto="inhabilitarProyecto"
-      @asignar-desarrollador="asignarDesarrollador"
+      @asignar-desarrolladores="asignarDesarrolladores"
       @remover-desarrollador="removerDesarrollador"
       @crear-etapa="crearEtapa"
       @actualizar-etapa="actualizarEtapa"

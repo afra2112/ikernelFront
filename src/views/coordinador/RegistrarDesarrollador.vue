@@ -1,7 +1,8 @@
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { usuarioService } from '@/services/usuarioService'
 import router from '@/router'
+import { proyectoService } from '@/services/proyectoService'
 
 const formData = ref({
   nombre: '',
@@ -17,6 +18,18 @@ const formData = ref({
   proyectoId: '',
   foto: null
 })
+
+
+const proyectos = ref([]);
+
+onMounted(async () => {
+  try {
+    const { data } = await proyectoService.listarProyectos();
+    proyectos.value = data;
+  } catch (error) {
+    console.error("Error cargando proyectos:", error);
+  }
+});
 
 function handleFileUpload(event) {
   formData.value.foto = event.target.files[0]
@@ -114,7 +127,7 @@ async function registrarDesarrollador() {
             <label class="form-label">Proyecto Asignado (Opcional)</label>
             <select v-model="formData.proyectoId" class="form-select">
               <option value="">Sin asignar</option>
-              <option v-for="proyecto in proyectos" :key="proyecto.id" :value="proyecto.id">
+              <option v-for="proyecto in proyectos" :key="proyecto.idProyecto" :value="proyecto.idProyecto">
                 {{ proyecto.nombre }}
               </option>
             </select>

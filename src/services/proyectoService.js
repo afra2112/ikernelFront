@@ -22,8 +22,8 @@ export const proyectoService = {
   async inhabilitarProyecto(id){
     return api.patch(`/api/proyectos/inhabilitar/${id}`);
   },
-  async asignarDesarrollador(idProyecto, idDesarrollador){
-    return api.patch(`/api/proyectos/asignar-desarrollador/${idProyecto}`, idDesarrollador);
+  async asignarDesarrolladores(idProyecto, idsDesarrolladores){
+    return api.patch(`/api/proyectos/asignar-desarrolladores/${idProyecto}`, idsDesarrolladores);
   },
   async removerDesarrollador(idProyecto, idDesarrollador){
     return api.patch(`/api/proyectos/remover-desarrollador/${idProyecto}`, idDesarrollador);

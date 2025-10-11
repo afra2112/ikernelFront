@@ -4,6 +4,9 @@ export const usuarioService = {
   async obtenerDesarrolladores(){
     return api.get("/api/usuarios/desarrolladores");
   },
+  async obtenerDesarrolladoresQueNoEstenEnProyectoActual(idProyecto){
+    return api.get(`/api/usuarios/desarrolladores-disponibles/${idProyecto}`, );
+  },
   async registrarDesarrollador(formData){
     return api.post("/api/usuarios/nuevo", formData, {
       headers: {"Content-Type": "multipart/form-data"}

@@ -22,13 +22,12 @@ const props = defineProps({
   }
 })
 
-
 // aqui mnado los emits para que mi padre view los escuche y mande las peticiones ya al back
 const emit = defineEmits([
   'actualizar-proyecto',
   'inhabilitar-proyecto',
   
-  'asignar-desarrollador',
+  'asignar-desarrolladores',
   'remover-desarrollador',
   
   'crear-etapa',
@@ -107,7 +106,7 @@ const formInterrupcion = ref({
   tipo: 'TECNICA'
 })
 
-const desarrolladorSeleccionado = ref(null)
+const desarrolladoresSeleccionados = ref([])
 
 // Funciones para abrir modales de edición
 const abrirEditarProyecto = () => {
@@ -158,10 +157,10 @@ const submitActualizarProyecto = () => {
   modalEditarProyecto.value = false
 }
 
-const submitAsignarDesarrollador = () => {
-  emit('asignar-desarrollador', desarrolladorSeleccionado.value)
+const submitAsignarDesarrolladores = () => {
+  emit('asignar-desarrolladores', desarrolladoresSeleccionados.value)
   modalAsignarDev.value = false
-  desarrolladorSeleccionado.value = null
+  desarrolladoresSeleccionados.value = []
 }
 
 const submitCrearEtapa = () => {
@@ -898,11 +897,11 @@ const formatMoneda = (valor) => {
           <h3>Asignar Desarrollador</h3>
           <button @click="modalAsignarDev = false" class="btn-close">×</button>
         </div>
-        <form @submit.prevent="submitAsignarDesarrollador" class="modal-body">
+        <form @submit.prevent="submitAsignarDesarrolladores" class="modal-body">
           <div class="form-group">
             <label>Seleccionar Desarrollador *</label>
-            <select v-model="desarrolladorSeleccionado" required class="form-control">
-              <option>-- Seleccione un desarrollador --</option>
+            <select v-model="desarrolladoresSeleccionados" required class="form-control" multiple>
+              <option v-if="desarrolladores.length === 0" value="" disabled>No hay desarrolladores disponibles.</option>
               <option v-for="desarrollador in props.desarrolladores" :key="desarrollador.idUsuario" :value="Number(desarrollador.idUsuario)">{{ desarrollador.nombre }} - {{ desarrollador.rol }}</option>
             </select>
           </div>
