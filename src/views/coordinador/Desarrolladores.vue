@@ -21,6 +21,10 @@ const desarrolladoresFiltrados = computed(() =>
     );
   })
 );
+
+async function habilitarDesarrollador(idDesarrollador, habilitar) {
+  await usuarioService.habilitarDesarrollador(idDesarrollador, habilitar)
+}
 </script>
 
 <template>
@@ -50,6 +54,7 @@ const desarrolladoresFiltrados = computed(() =>
         :key="dev.idUsuario"
         class="dev-card"
         @click="$router.push(`/dashboard/desarrolladores/${dev.idUsuario}`)"
+        :class="{'deshabilitado': !dev.habilitado}"
       >
         <div class="dev-avatar">
           <img
@@ -86,9 +91,16 @@ const desarrolladoresFiltrados = computed(() =>
           <button
             v-if="dev.habilitado"
             class="btn btn-danger btn-sm"
-            @click="$emit('inhabilitar', dev.idUsuario)"
+            @click="habilitarDesarrollador(dev.idUsuario, false)"
           >
             🚫 Inhabilitar
+          </button>
+          <button
+            v-if="!dev.habilitado"
+            class="btn btn-primary btn-sm"
+            @click="habilitarDesarrollador(dev.idUsuario, true)"
+          >
+            ✅ Habilitar
           </button>
         </div>
       </div>
@@ -150,6 +162,10 @@ const desarrolladoresFiltrados = computed(() =>
   align-items: center;
   justify-content: center;
   margin-bottom: 12px;
+}
+
+.deshabilitado{
+  background: #dc6970;
 }
 
 .dev-avatar img {

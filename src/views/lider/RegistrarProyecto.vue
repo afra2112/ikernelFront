@@ -2,6 +2,7 @@
 import { authService } from '@/services/authService'
 import { proyectoService } from '@/services/proyectoService'
 import { usuarioService } from '@/services/usuarioService'
+import moment from 'moment'
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -24,10 +25,11 @@ const proytectoForm = ref({
   desarrolladoresIds: []
 })
 const desarrolladoresSeleccionados = ref([])
+const error = ref("")
 
 onMounted(async () => {
   try {
-    desarrolladores.value = (await usuarioService.obtenerDesarrolladores()).data;
+    desarrolladores.value = (await usuarioService.obtenerDesarrolladoresHabilitados()).data;
     const { data } = await authService.currentUser();
     proytectoForm.value.idLider = Number(data.idUsuario);
   } catch (e) {
@@ -38,14 +40,26 @@ onMounted(async () => {
 const registrarProyecto = async () => {
   proytectoForm.value.desarrolladoresIds = desarrolladoresSeleccionados.value.map(Number);
 
-  try {
-    await proyectoService.registrarProyecto(proytectoForm.value) 
-    mensaje.value = 'Proyecto registrado exitosamente'
-    mensajeTipo.value = 'success'
-  } catch (error) {
-    console.log(error);
+  const fechaInicio = moment(proytectoForm.value.fechaInicio)
+  const fechaFinal = moment(proytectoForm.value.fechaEntrega)
+
+  if(!fechaInicio.isValid || !fechaFinal.isValid){
+    error.value = "Por favor, introduce fechas válidas."
+    return;
   }
-  
+
+  if(fechaFinal.isBefore(fechaInicio)){
+        error.value = "La fecha de finalización no puede ser antes que la fecha de inicio."
+  } else {
+    error.value = ""
+    try {
+      await proyectoService.registrarProyecto(proytectoForm.value) 
+      mensaje.value = 'Proyecto registrado exitosamente'
+      mensajeTipo.value = 'success'
+    } catch (error) {
+      console.log(error);
+    }
+  }
 }
 </script>
 
@@ -119,6 +133,10 @@ const registrarProyecto = async () => {
 
         <div v-if="mensaje" :class="['alert', mensajeTipo === 'success' ? 'alert-success' : 'alert-error']">
           {{ mensaje }}
+        </div>
+
+        <div>
+          <p v-if="error" class="alert alert-error">{{ error }}</p>
         </div>
 
         <div class="flex gap-2 mt-4">

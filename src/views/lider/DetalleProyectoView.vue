@@ -18,7 +18,6 @@ const cargarProyecto = async () => {
   try {
     const { data } = await proyectoService.obtenerDetalleProyecto(route.params.idProyecto)
     proyecto.value = data
-    console.log(data.desarrolladores)
     const { data: dataDesarrolladores } = await usuarioService.obtenerDesarrolladoresQueNoEstenEnProyectoActual(data.idProyecto);
     desarrolladores.value = dataDesarrolladores
   } catch (err) {
@@ -101,6 +100,7 @@ const eliminarEtapa = async (idEtapa) => {
 const crearActividad = async (form) => {
   try {
     form.idProyecto = proyecto.value.idProyecto
+    console.log(form)
     await actividadService.crearActividad(form)
     await cargarProyecto()
   } catch (e) {

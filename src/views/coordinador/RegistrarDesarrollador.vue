@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { usuarioService } from '@/services/usuarioService'
 import router from '@/router'
 import { proyectoService } from '@/services/proyectoService'
+import moment from 'moment'
 
 const formData = ref({
   nombre: '',
@@ -18,6 +19,8 @@ const formData = ref({
   proyectoId: '',
   foto: null
 })
+
+const error = ref("")
 
 
 const proyectos = ref([]);
@@ -36,13 +39,21 @@ function handleFileUpload(event) {
 }
 
 async function registrarDesarrollador() {
-  const fd = new FormData()
-  for (const key in formData.value) {
-    fd.append(key, formData.value[key])
-  }
+  
+  const fechaNacimiento = moment(formData.value.fechaNacimiento)
+  const edad = moment().diff(fechaNacimiento, 'years')
 
-  await usuarioService.registrarDesarrollador(fd)
-  router.push("/dashboard/desarrolladores")
+  if(edad < 18){
+    error.value = "El desarrollador debe ser mayor de edad."
+  } else {
+    const fd = new FormData()
+    for (const key in formData.value) {
+      fd.append(key, formData.value[key])
+    }
+
+    await usuarioService.registrarDesarrollador(fd)
+    router.push("/dashboard/desarrolladores")
+  }
 }
 
 </script>
@@ -137,6 +148,10 @@ async function registrarDesarrollador() {
             <label class="form-label">Foto</label>
             <input type="file" class="form-input" @change="handleFileUpload">
           </div>
+        </div>
+
+        <div>
+          <p v-if="error" class="alert alert-error">{{ error }}</p>
         </div>
 
         <div class="flex gap-2 mt-4">

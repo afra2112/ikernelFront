@@ -82,7 +82,9 @@ const formEtapa = ref({
 
 const formActividad = ref({
   idActividad: null,
-  idDesarrollador: null,
+  desarrollador: {
+    idUsuario: null
+  },
   idEtapa: null,
   idProyecto: null,
   nombre: '',
@@ -260,8 +262,9 @@ const progresoGeneral = computed(() => {
 })
 
 const getActividadesPorEtapa = (idEtapa) => {
-  if (!props.proyecto?.actividades) return []
-  return props.proyecto.actividades.filter(act => act.idEtapa === idEtapa)
+  if (!props.proyecto?.etapas) return []
+  const etapa = props.proyecto.etapas.find(etapa => etapa.idEtapa === idEtapa)
+  return etapa.actividades
 }
 
 const getErroresPorActividad = (idActividad) => {
@@ -339,7 +342,7 @@ const formatMoneda = (valor) => {
     <div v-if="!proyecto" class="empty-state">
       <h2>Proyecto no encontrado</h2>
       <p>El proyecto que buscas no existe o no tienes permisos para verlo.</p>
-      <router-link to="/dashboard/lider/proyectos" class="btn btn-primary">
+      <router-link to="/dashboard/proyectos" class="btn btn-primary">
         Volver a proyectos
       </router-link>
     </div>
@@ -503,7 +506,7 @@ const formatMoneda = (valor) => {
             <div v-else class="developers-grid">
               <div v-for="dev in proyecto.desarrolladores" :key="dev.idUsuario" class="developer-card">
                 <div class="developer-avatar">
-                  <img v-if="dev.foto" :src="dev.foto" :alt="dev.nombre" />
+                  <img v-if="dev.foto" :src="`http://localhost:8080/imagenes/${dev.foto}`" :alt="dev.nombre" />
                   <div v-else class="avatar-placeholder">
                     {{ dev.nombre.charAt(0) }}{{ dev.apellido.charAt(0) }}
                   </div>
@@ -629,13 +632,15 @@ const formatMoneda = (valor) => {
                             <span class="progress-text">{{ actividad.estado }}%</span>
                           </div>
                           <button @click.stop="abrirEditarActividad(actividad)" class="btn-icon btn-sm" title="Editar">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                            </svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2"
+  stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" width="20" height="20">
+  <path d="M12 20h9" />
+  <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4z" />
+</svg>
+
                           </button>
                           <button @click.stop="emit('eliminar-actividad', actividad.idActividad)" class="btn-icon btn-sm btn-danger-icon" title="Eliminar">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                               <polyline points="3 6 5 6 21 6"></polyline>
                               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                             </svg>
@@ -924,7 +929,7 @@ const formatMoneda = (valor) => {
             </div>
             <div class="form-group">
               <label>Desarrollador Asignado</label>
-              <select v-model="formActividad.idDesarrollador" class="form-control">
+              <select v-model="formActividad.desarrollador.idUsuario" class="form-control">
                 <option :value="null">Sin asignar</option>
                 <option v-for="dev in proyecto.desarrolladores" :key="dev.idUsuario" :value="dev.idUsuario">
                   {{ dev.nombre }} {{ dev.apellido }}
