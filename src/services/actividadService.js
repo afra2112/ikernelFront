@@ -10,4 +10,8 @@ export const actividadService = {
   async eliminarActividad(idActividad){
     return api.delete(`/api/proyectos/actividades/eliminar/${idActividad}`);
   },
+  async obtenerPorDesarrollador(idDesarrollador){
+    console.log(idDesarrollador)
+    return api.get(`/api/proyectos/actividades/desarrolladores/${idDesarrollador}/actividades`);
+  },
 }

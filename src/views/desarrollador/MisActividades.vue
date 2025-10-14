@@ -1,29 +1,23 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { actividadService } from '@/services/actividadService'
+import { authService } from '@/services/authService'
+import { ref, computed, onMounted } from 'vue'
 
-const props = defineProps({
-  actividades: {
-    type: Array,
-    default: () => []
+const actividades = ref([])
+const filtroEstado = ref("")
+const idDesarrollador = ref(null)
+
+onMounted(async () => {
+  try {
+    const { data } = await authService.currentUser();
+    idDesarrollador.value = data.idUsuario
+
+    const res = await actividadService.obtenerPorDesarrollador(idDesarrollador.value)
+    actividades.value = res.data
+  } catch (e) {
+    console.log(e);
   }
-})
-
-defineEmits(['iniciar', 'completar', 'actualizar-progreso'])
-
-const filtroEstado = ref('')
-
-const actividadesFiltradas = computed(() => {
-  if (!filtroEstado.value) return props.actividades
-  return props.actividades.filter(a => a.estado === filtroEstado.value)
-})
-
-const actividadesPendientes = computed(() => 
-  props.actividades.filter(a => a.estado === 'Pendiente').length
-)
-
-const actividadesCompletadas = computed(() => 
-  props.actividades.filter(a => a.estado === 'Completada').length
-)
+});
 
 const getPrioridadBadge = (prioridad) => {
   const badges = {
@@ -58,7 +52,7 @@ const formatearFecha = (fecha) => {
       <div class="card stat-card">
         <div class="stat-icon">📋</div>
         <div class="stat-content">
-          <h3>{{ actividades.length }}</h3>
+          <h3>{{  }}</h3>
           <p>Total Actividades</p>
         </div>
       </div>
@@ -66,7 +60,7 @@ const formatearFecha = (fecha) => {
       <div class="card stat-card">
         <div class="stat-icon">⏳</div>
         <div class="stat-content">
-          <h3>{{ actividadesPendientes }}</h3>
+          <h3>{{  }}</h3>
           <p>Pendientes</p>
         </div>
       </div>
@@ -74,7 +68,7 @@ const formatearFecha = (fecha) => {
       <div class="card stat-card">
         <div class="stat-icon">✅</div>
         <div class="stat-content">
-          <h3>{{ actividadesCompletadas }}</h3>
+          <h3>{{  }}</h3>
           <p>Completadas</p>
         </div>
       </div>
@@ -92,7 +86,7 @@ const formatearFecha = (fecha) => {
       </div>
 
       <div class="actividades-grid">
-        <div v-for="actividad in actividadesFiltradas" :key="actividad.id" class="actividad-card">
+        <div v-for="actividad in actividades" :key="actividad.id" class="actividad-card">
           <div class="actividad-header">
             <h3>{{ actividad.nombre }}</h3>
             <span :class="['badge', getPrioridadBadge(actividad.prioridad)]">
@@ -150,9 +144,9 @@ const formatearFecha = (fecha) => {
         </div>
       </div>
 
-      <div v-if="actividadesFiltradas.length === 0" class="text-center" style="padding: 40px;">
+      <!--div v-if="actividadesFiltradas.length === 0" class="text-center" style="padding: 40px;">
         <p style="color: var(--text-secondary)">No tienes actividades asignadas</p>
-      </div>
+      </div-->
     </div>
   </div>
 </template>
